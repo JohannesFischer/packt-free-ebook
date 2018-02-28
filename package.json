@@ -1,0 +1,12 @@
+{
+  "name": "packt-free-ebook",
+  "version": "0.1.0",
+  "description": "Download the daily free ebook from Packt",
+  "main": "index.js",
+  "scripts": {},
+  "author": "Johannes Fischer",
+  "license": "MIT",
+  "dependencies": {
+    "selenium-webdriver": "^3.5.0"
+  }
+}
