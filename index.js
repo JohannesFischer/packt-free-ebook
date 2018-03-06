@@ -19,14 +19,35 @@ const fs = require('fs');
 const writeFile = util.promisify(fs.writeFile);
 
 const binary = new firefox.Binary(firefox.Channel.Release);
-// binary.addArguments('-headless');
+binary.addArguments('-headless');
+
+const acceptedMimetypes = [
+  'application/epub+zip',
+  'application/x-mobipocket-ebook',
+  'application/octet-stream'
+];
+
+const profile = new firefox.Profile();
+profile.setPreference('pdfjs.disabled', true);
+profile.setPreference('browser.helperApps.neverAsk.saveToDisk', acceptedMimetypes.join(';'));
+
+const firefoxOptions = new firefox.Options()
+  .setBinary(binary)
+  .setProfile(profile);
 
 const driver = new webdriver.Builder()
-    .forBrowser('firefox')
-    .setFirefoxOptions(new firefox.Options().setBinary(binary))
-    .build();
+  .forBrowser('firefox')
+  .setFirefoxOptions(firefoxOptions)
+  .build();
 
 const freeBookUrl = 'https://www.packtpub.com//packt/offers/free-learning';
+const myBooksUrl = 'https://www.packtpub.com/account/my-ebooks';
+
+async function exit() {
+  console.log('K, thanks bye.');
+  await driver.quit();
+  process.exit();
+}
 
 // Fetch book details
 
@@ -51,11 +72,7 @@ async function main() {
       type: 'confirm'
     });
 
-    if (!claimInquiry.claim) {
-      console.log('K, thanks bye.');
-      await driver.quit();
-      process.exit();
-    }
+    if (!claimInquiry.claim) return exit();
   }
 
   // Load Packt website
@@ -89,6 +106,9 @@ async function main() {
   await driver.findElement(By.css('body')).sendKeys(webdriver.Key.TAB);
   await driver.findElement(By.css('#page input#email')).sendKeys(email);
   await driver.findElement(By.css('#page input#password')).sendKeys(password);
+
+  console.log('Logging in...')
+
   await driver.findElement(By.css('#page #login-form-submit input')).click();
 
   // For now assume login will always be successful
@@ -97,23 +117,61 @@ async function main() {
 
   // Claim book / Add Book to library
 
-  await driver.executeScript("document.querySelector('#free-learning-claim').scrollIntoView();");
-  await driver.findElement(By.css('#free-learning-claim')).click();
+  // await driver.executeScript("document.querySelector('#free-learning-claim').scrollIntoView();");
+  // await driver.findElement(By.css('#free-learning-claim')).click();
 
-  await driver.sleep(1500);
+  // await driver.wait(async () => {
+  //   const url = await driver.getCurrentUrl();
+  //   return url === myBooksUrl;
+  // }, 5000);
+
+  await driver.get(myBooksUrl);
 
   console.log('Book has been added to your library. Enjoy!');
 
-  const data = await driver.takeScreenshot();
-  await writeFile('screenshot.png', data, 'base64');
+  // Dowload book in desired format if wanted
+
+  if (options.yes !== true) {
+    const downloadInquiry = await inquirer.prompt({
+      name: 'download',
+      message: 'Do you want to download the Book now?',
+      type: 'confirm'
+    });
+
+    if (!downloadInquiry) {
+      console.log('If you change your mind, you find the book in your librabry: ' + myBooksUrl);
+      return exit();
+    }
+  }
+
+  const bookFormat = await inquirer.prompt({
+    choices: [
+      'ePub',
+      'Mobi',
+      'PDF'
+    ],
+    name: 'format',
+    message: 'In which format do you want it?',
+    type: 'list'
+  });
+
+  const { format } = bookFormat;
+  console.log(`Downloading book in ${format} format.`);
+
+  await driver.findElement(By.css('.toggle-product-line')).click();
+  await driver.sleep(250);
+  await driver.findElement(By.css(`div[format=${format.toLowerCase()}]`)).click();
+
+  console.log('Started download. Shutting down in 30s.')
+
+  await driver.sleep(30000);
+
+  console.log('Possibly done. Shutting down.');
+
+  // const data = await driver.takeScreenshot();
+  // await writeFile('screenshot.png', data, 'base64');
 
   await driver.quit();
 }
 
 main();
-
-// What's next?
-
-// Dowload book in desired format if wanted
-
-// Bonus point two: check for duplicates for automated use
