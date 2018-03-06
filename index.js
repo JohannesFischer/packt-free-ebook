@@ -117,15 +117,13 @@ async function main() {
 
   // Claim book / Add Book to library
 
-  // await driver.executeScript("document.querySelector('#free-learning-claim').scrollIntoView();");
-  // await driver.findElement(By.css('#free-learning-claim')).click();
+  await driver.executeScript("document.querySelector('#free-learning-claim').scrollIntoView();");
+  await driver.findElement(By.css('#free-learning-claim')).click();
 
-  // await driver.wait(async () => {
-  //   const url = await driver.getCurrentUrl();
-  //   return url === myBooksUrl;
-  // }, 5000);
-
-  await driver.get(myBooksUrl);
+  await driver.wait(async () => {
+    const url = await driver.getCurrentUrl();
+    return url === myBooksUrl;
+  }, 5000);
 
   console.log('Book has been added to your library. Enjoy!');
 
