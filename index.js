@@ -5,6 +5,7 @@ const inquirer = require('inquirer');
 const webdriver = require('selenium-webdriver');
 const { By, until } = webdriver;
 const firefox = require('selenium-webdriver/firefox');
+const config = require('./config');
 
 const optionDefinitions = [
   { name: 'yes', alias: 'y', type: Boolean },
@@ -40,9 +41,6 @@ const driver = new webdriver.Builder()
   .setFirefoxOptions(firefoxOptions)
   .build();
 
-const freeBookUrl = 'https://www.packtpub.com//packt/offers/free-learning';
-const myBooksUrl = 'https://www.packtpub.com/account/my-ebooks';
-
 async function exit() {
   console.log('K, thanks bye.');
   await driver.quit();
@@ -53,7 +51,7 @@ async function exit() {
 
 async function main() {
   const $ = await request({
-    uri: freeBookUrl,
+    uri: config.urls.freeBooks,
     transform: function (body) {
       return cheerio.load(body);
     }
@@ -80,7 +78,7 @@ async function main() {
   console.log('Preparing to login. This might take a while...');
 
   await driver.manage().window().maximize();
-  await driver.get(freeBookUrl);
+  await driver.get(config.urls.freeBooks);
 
   // Login
 
@@ -122,7 +120,7 @@ async function main() {
 
   await driver.wait(async () => {
     const url = await driver.getCurrentUrl();
-    return url === myBooksUrl;
+    return url === config.urls.myBooks;
   }, 5000);
 
   console.log('Book has been added to your library. Enjoy!');
@@ -137,7 +135,7 @@ async function main() {
     });
 
     if (!downloadInquiry) {
-      console.log('If you change your mind, you find the book in your librabry: ' + myBooksUrl);
+      console.log('If you change your mind, you find the book in your librabry: ' + config.urls.myBooks);
       return exit();
     }
   }
